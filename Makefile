@@ -1,21 +1,24 @@
-CC = i586-elf-gcc
-LD = i586-elf-ld
-OBJCOPY = i586-elf-objcopy
-OBJDUMP = i586-elf-objdump
+#TOOLCHAIN_PREFIX = i586-elf-
+
+CC = $(TOOLCHAIN_PREFIX)gcc
+LD = $(TOOLCHAIN_PREFIX)ld
+OBJCOPY = $(TOOLCHAIN_PREFIX)objcopy
+OBJDUMP = $(TOOLCHAIN_PREFIX)objdump
+
+CFLAGS = -fomit-frame-pointer -Os -nostdlib -m32 -flto
+
+SRCS = $(wildcard *.c)
+OBJS = $(SRCS:.c=.o)
 
 all: supersch
 
 supersch: supersch.o
 	$(OBJDUMP) -d $< > $@.asm
 	$(OBJCOPY) -O binary $< $@
-	
-supersch.o: $(wildcard *.c)
-	$(CC) -fomit-frame-pointer -fwhole-program -combine -Os -nostdlib -T link.ld -Wl,-Map=supersch.map -o $@ $(filter boot.c,$+) $(filter-out boot.c,$+)
+
+supersch.o: $(OBJS)
+	$(CC) $(CFLAGS) -T link.ld -Wl,-Map=supersch.map -Wl,-melf_i386 -o $@ $(filter boot.c,$+) $(filter-out boot.c,$+)
 
 clean:
-	rm -rf supersch supersch.o supersch.asm supersch.map
+	rm -rf supersch supersch.o $(OBJS) supersch.asm supersch.map
 
-QEMU = /c/Program\ Files/Qemu/qemu.exe
-.phony: qemu
-qemu: supersch
-	$(QEMU) -fda supersch -hda hda.img
